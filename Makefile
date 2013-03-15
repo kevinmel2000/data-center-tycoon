@@ -1,14 +1,8 @@
-all: game/dc-tycoon.t3
+solver.js:
+	notangle solver.nw > solver.js
 
-game/obj:
-	mkdir -p game/obj
+solver.pdf: solver.tex
+	pdflatex solver.tex
 
-game/dc-tycoon.t3: game/obj
-	cd game && t3make -cs UTF-8 -d -f dc-tycoon
-
-play:
-	t3run -cs UTF-8 game/dc-tycoon.t3
-
-clean:
-	rm -r game/obj
-	rm game/dc-tycoon.t3
+solver.tex:
+	noweave solver.nw > solver.tex
