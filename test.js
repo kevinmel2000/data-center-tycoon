@@ -1,14 +1,20 @@
-var solver = require('./solver');
+var noweb = require('./noweb');
 
-console.log(solver({
-  shoes: {
-    price: 200,
-    base: 10,
-    risk: 1.1
-  },
-  watermelons: {
-    price: 100,
-    base: 8,
-    risk: 1.3
+noweb.tangle('./solver', function (err, solver) {
+  if (err) {
+    throw err;
   }
-}, 1000));
+
+  console.log(solver({
+    shoes: {
+      price: 200,
+      base: 10,
+      risk: 1.1
+    },
+    watermelons: {
+      price: 100,
+      base: 8,
+      risk: 1.3
+    }
+  }, 1000));
+});

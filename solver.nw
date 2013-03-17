@@ -1,13 +1,336 @@
-<<*>>=
-<<imports>>
-<<_solve>>
-<<exports>>
+@
+\title{solver.js}
+\author{Joshua Holbrook}
+\date{\today}
+\maketitle
+
+\section{Numerical Method}
+
+Given a set of:
+
+\begin{itemize}
+  \item prices (Array[i])
+  \item base utility coefficients (Array[i])
+  \item risk factors (Array[i])
+  \item a budget (scalar)
+\end{itemize}
+
+This submodule will find a "near-optimum" choice for amounts to purchase, using
+an implementation of Newton's method.
+
+\subsection{Overview}
+
+The method used here is based on finding the highest utility possible given a
+specified budget. The objective function (ie, utility) can be visualized with
+indifference curves.
+
+You can read more about indifference curves at
+https://en.wikipedia.org/wiki/Indifference\_curve .
+
+\subsection{Utility Function}
+
+There are a number of models used for utility functions. In this case, we choose
+the ``isoelastic utility'' function because it takes into account risk and yet
+is simple enough that it isn't overly difficult to work with.
+
+According to https://en.wikipedia.org/wiki/Isoelastic\_utility the function for
+a single item is:
+
+\[
+  U(c) = \left\{
+    \begin{array}{l l}
+      \frac{ c^{1 - \eta} - 1}{1 - \eta} & \quad \eta \neq 1 \\
+      \log(c) & \quad \eta = 1
+    \end{array}
+  \right.
+\]
+
+where \(c\) represents consumption (that is, units bought) and \(\eta\) is a
+measure of risk in buying units. This function branches because the definition
+for \(\eta \neq 1\) has a ``divide-by-zero'' singularity at \(\eta = 1\), but
+limits to the taken definition for \(\eta = 1\). Note that the derivative is
+smooth around \(\eta = 1\) and doesn't need to be piecewise defined.
+
+For the rest of this derivation, we will assume \(\eta \neq 1\) for simplicity,
+and gloss over special cases for \(\eta = 1\).
+
+This definition can be extended for multiple items as
+
+\[
+  U(\vec{c}) = \sum_i^n\left(
+    \frac{ a_i \left(c_i^{1 - \eta_i} - 1\right)}{1 - \eta_i}
+  \right)
+\]
+
+Here, we introduce a new variable, \(\vec{a}\), to represent the
+``base utility`` of the item. This was unnecessary for a single item, but here
+accounts for the fact that some items have greater utility than others not
+accounting for risk.
+
+Finally, optimization problems are specified by convention to be minimization
+problems, so our objective function is
+
+\[
+  f(\vec{c}) = -U(\vec{c}) = \sum_i^n\left(
+    \frac{ a_i \left(1 - c_i^{1 - \eta_i}\right)}{1 - \eta_i}
+  \right)
+\]
+
+\section{Constraints}
+
+This problem has a number of constraints.
+
+\[
+  c_i \geq 0
+  \sum_i^n p_ic_i \leq b
+\]
+
+Simply put, buying negative items doesn't make any sense, and we can't go
+overbudget.
+
+Constrained optimization is painful, and is made even more so by inequality
+constraints. In order to make this derivation easier we will
+assume that our objective function is ``well-behaved'' in this regard and use
+the equality constraint
+
+\[
+  \sum_i^n p_ic_i = b
+\]
+
+\section{The Optimization Problem}
+
+Putting our objective function and constraint together, the problem becomes:
+
+\[
+  \textrm{min}_{c_i} f(c_i) = \sum_i^n\left(
+    \frac{ a_i \left(1 - c_i^{1 - \eta_i}\right)}{1 - \eta_i}
+  \right)
+\]
+\[
+  \sum_i^n p_ic_i - b = 0
+\]
+
+\section{The Lagrangian}
+
+Here, we use Lagrange multipliers
+(see: https://en.wikipedia.org/wiki/Lagrange\_multipliers) to convert the
+problem into an unconstrained zero-finding problem. In practice this derivation
+is often prohibitive, but our problem is simple enough that it should be
+tractible.
+
+In general, the Lagrangian is
+
+\[
+  \Lambda(\vec{c}, \lambda) = f(\vec{c}) + \lambda g(\vec{c})
+\]
+
+Specifically, in our problem,
+
+\[
+  \Lambda(\vec{c}, \lambda) = \sum_i^n\left(
+    \frac{ a_i \left(1 - c_i^{1 - \eta_i}\right)}{1 - \eta_i}
+  \right) + \lambda\left(
+    \sum_i^n p_ic_i - b
+  \right)
+\]
+
+or, simplified,
+
+\[
+  \Lambda(\vec{c}, \lambda) = \sum_i^n \left(
+    \frac{ a_i \left(1 - c_i^{1 - \eta_i}\right)}{1 - \eta_i} + \lambda p_ic_i
+  \right) - \lambda b
+\]
+
+\section{Newton's Method}
+
+According to
+https://en.wikipedia.org/wiki/Newton\%27s\_method\_in\_optimization\#Higher\_dimensions ,
+Newton's Method consists of repeatedly solving the following for
+\(\vec{r} = \vec{x}_{k+1} - \vec{x}_k\) until this value approaches the zero
+vector.
+
+\[
+  H_{\Lambda}\vec{r} = -\nabla\Lambda
+\]
+
+Note that in our problem, \(\vec{x}\) includes all the \(c_i\) as well as
+\(\lambda\):
+
+\[
+  \vec{x} = \left[\begin{array}{l}
+    c_1 \\
+    c_2 \\
+    c_3 \\
+    ... \\
+    c_n \\
+    \lambda
+  \end{array}\right]
+\]
+
+and \(H_{\Lambda}\), the Hessian, is a matrix where
+
+\[
+  J_{ij} = \frac{\partial^2\Lambda}{\partial x_i \partial x_j}
+\]
+
+Specifying this problem requires a whole bunch of derivatives:
+
+\[
+  \frac{\partial\Lambda}{\partial c_i} = \lambda p_i - a_ic_i^{\eta_i}
+\]
+
+<<dLdci>>=
+//
+// Note that in the woven code, prices, bases, buys, risks and budget
+// will all be defined.
+//
+function dLdci(i) {
+  return prices[i] - bases[i] * Math.pow(buys[i], risks[i]);
+}
+@
+
+\[
+  \frac{\partial\Lambda}{\partial\lambda} = \sum_i^n\left(p_ic_i\right) - b
+\]
+
+<<dLdl>>=
+function dLdl() {
+  var sum = 0;
+  for (i = 0; i < n; i++) {
+    sum += prices[i] * buys[i];
+  }
+  return sum - budget;
+}
+@
+
+\[
+  \frac{\partial^2\Lambda}{\partial c_i^2} = -a_i\eta_ic_i{\eta_i-1}
+\]
+
+<<d2Ldci2>>=
+function d2Ldci2(i) {
+  return - bases[i] * risks[i] * Math.pow(buys[i], risks[i] - 1);
+}
+@
+
+\[
+  \frac{\partial^2\Lambda}{\partial c_i \partial c_j} = 0
+\]
+
+\[
+  \frac{\partial^2\Lambda}{\partial c_i \partial \lambda} = \sum_i^n p_i
+\]
+
+<<d2Ldcidl>>=
+function d2Ldcidl() {
+  var sum = 0;
+  for (i = 0; i < n; i++) {
+    sum += prices[i];
+  }
+  return sum;
+}
+@
+
+\[
+  \frac{\partial^2\Lambda}{\partial\lambda^2} = 0
+\]
+
+Now we can assemble \(H_\Lambda\):
+
+<<hf>>=
+var hf = Array.apply(null, Array(n))
+  .map(function (_, i) {
+    return Array.apply(null, Array(n))
+      .map(function (_, j) {
+        if (i == j) {
+          return d2Ldci2(i);
+        }
+        else {
+          return 0;
+        }
+      })
+      .concat(d2Ldcidl())
+    ;
+  })
+  .concat([
+    Array.apply(null, Array(prices.length))
+      .map(function (_, i) {
+        return d2Ldcidl(i);
+      })
+      .concat(0)
+  ])
+;
+@
+
+and \(\nabla\Lambda\):
+
+<<del>>=
+var del = Array.apply(null, Array(n))
+  .map(function (_, i) {
+    return dLdci(i);
+  })
+  .concat(dLdl())
+;
+@
+
+\section{Implementing the Numerical Method}
+
+We use the "numeric" library for our linear algebra functions.
 
 <<imports>>=
 var num = require('numeric');
+@
+
+Solving is now just a matter of applying our iterative method:
+
+<<solve>>=
+function _solve(prices, bases, risks, budget) {
+
+  var n = prices.length;
+
+  function p(buys) {
+    <<dLdci>>
+    <<dLdl>>
+    <<d2Ldci2>>
+    <<d2Ldcidl>>
+
+    <<hf>>
+
+    <<del>>
+
+    return num.solve(hf, del);
+  }
+
+  var buys = Array.apply(null, Array(n + 1))
+        .map(function () { return 100; }),
+      delta = buys.map(function () { return 100; }),
+      gamma = 1, // Smaller step sizes may perform better, this is empirically adjusted
+      epsilon = 0.01, // Use this to adjust precision
+      next;
+
+  while (num.norm2(delta) > epsilon) {
+    next = num.sub(buys, p(buys));
+    delta = buys - next;
+    buys = next;
+  }
+
+  buys.pop();
+
+  return buys.map(function (b) {
+    return Math.max(0, Math.floor(b));
+  });
+}
+@
+
+\section{Exposed API}
+
+Our solver function takes vectors, but we want to specify the problems in a
+more dev-friendly manner--that is, with objects where the key represents the
+item and the values specify the prices, base utilities and risk factors).
 
 <<exports>>=
-module.exports = function solve(params, budget) {
+module.exports = function (params, budget) {
   var keys = Object.keys(params),
       prices = [],
       bases = [],
@@ -26,99 +349,26 @@ module.exports = function solve(params, budget) {
 
   return buys;
 };
-
 @
-Given a set of:
 
-\begin{itemize}
-  \item prices (Array[i])
-  \item base utility coefficients (Array[i])
-  \item risk factors (Array[i])
-  \item a budget (scalar)
-\end{itemize}
+\section{Tangle}
 
-This submodule will find a "near-optimum" choice for amounts to purchase, using
-an implementation of Newton's method.
+<<*>>=
+<<imports>>
 
-See:
+<<solve>>
 
-%
-% Links break right now because I'm not using --delay and \usepackage{hyperref}
-%
-% \begin{itemize}
-%   \item \href{indifference curve}{https://en.wikipedia.org/wiki/Indifference_curve}
-%   \item \href{isoelastic utility}{https://en.wikipedia.org/wiki/Isoelastic_utility}
-%   \item \href{Lagrange multipliers}{https://en.wikipedia.org/wiki/Lagrange_multipliers}
-%   \item \href{Newton's method}{https://en.wikipedia.org/wiki/Newton%27s_method_in_optimization}
-% \end{itemize}
+<<exports>>
 
-<<_solve>>=
-function _solve(prices, bases, risks, budget) {
+\section{caveats}
 
-  //
-  // \[\vec{x_{n + 1}} = \vec{x_n} - \gamma \vec{p_n}\]
-  //
-  // where
-  //
-  // \[Hf(\vec{x}, \lambda)\vec{p_n} = \nambla \vec{x}\]
-  // \[f(\vec{x}, \lambda) = \sum_i a_i \frac{1 - {c_i}^{1 - \eta_i}}{1 - \eta_i} + \lambda\left(\sum_i(p_ic_i) - b\right)\]
-  //
-  // (\(f\) is the Lagrangian of
-  //
-  // \[\sum_i a_i \frac{1 - {c_i}^{1 - \eta_i}}{1 - \eta_i}\]
-  //
-  // given
-  //
-  // \[ \sum_i p_ic_i = b \]
-  //
-  // and
-  //
-  // \( n = i + 1 \) (\(\lambda\) adds an extra dimension)
-  // \(c_i\) is the consumption of the ith product
-  // \(a_i\) is the base utility coefficient
-  // \(\eta_i\) is the risk factor in buying the ith product
-  // \(p_i\) is the cost of the ith product
-  //
-  function p(buys) {
-    var hf = 
-      Array.apply(null, Array(prices.length))
-        .map(function (_, i) {
-          return risks[i] * (1 - risks[i]) / Math.pow(buys[i], risks[i] + 1);
-        })
-        .concat(0)
-    ;
+Recall that we assumed that this function was well-behaved enough to avoid
+negative values. That means that if the optimum is near zero for some
+products, or if our objective funtion is not ``well-behaved'', that our method
+will probably not perform very well.
 
-    hf = num.diag(hf);
-
-    var del = Array.apply(null, Array(prices.length))
-      .map(function (_, i) {
-        return (bases[i] / Math.pow(buys[i], -risks[i])) +
-               (buys[buys.length - 1] * buys[i]);
-      })
-      .concat(num.dot(prices, buys) - budget)
-    ;
-
-    console.log('A:', hf);
-    console.log('b:', del);
-
-    return num.solve(hf, del);
-  }
-
-  var buys = Array.apply(null, Array(prices.length + 1))
-        .map(function () { return 0.1; }),
-      delta = buys.map(function () { return 100; }),
-      gamma = 1, // Smaller step sizes may perform better, this is empirically adjusted
-      epsilon = 0.01; // Use this to adjust precision
-
-  while (num.norm2(delta) > epsilon) {
-    delta = p(buys);
-    buys = num.sub(buys, delta);
-  }
-
-  buys.pop();
-
-  return buys.map(function (b) {
-    return Math.max(0, Math.floor(b));
-  });
-}
-
+Also note that, in real life, when consumers have a choice between two
+similar products which require a base investment, that there will be a cost
+associated with using more than one product (example: using AWS and RackSpace
+instead of just AWS or just RackSpace). This model does not take that into
+consideration at all.
