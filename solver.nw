@@ -4,8 +4,6 @@
 \date{\today}
 \maketitle
 
-\section{Numerical Method}
-
 Given a set of:
 
 \begin{itemize}
@@ -15,10 +13,10 @@ Given a set of:
   \item a budget (scalar)
 \end{itemize}
 
-This submodule will find a "near-optimum" choice for amounts to purchase, using
-an implementation of Newton's method.
+This submodule will find a "near-optimum" choice for amounts of each product
+to purchase.
 
-\subsection{Overview}
+\section{Overview}
 
 The method used here is based on finding the highest utility possible given a
 specified budget. The objective function (ie, utility) can be visualized with
@@ -27,7 +25,7 @@ indifference curves.
 You can read more about indifference curves at
 https://en.wikipedia.org/wiki/Indifference\_curve .
 
-\subsection{Utility Function}
+\section{Utility Function}
 
 There are a number of models used for utility functions. In this case, we choose
 the ``isoelastic utility'' function because it takes into account risk and yet
