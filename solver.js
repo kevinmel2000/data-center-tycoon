@@ -102,16 +102,3 @@ module.exports = function (params, budget) {
 
   return buys;
 };
-
-\section{caveats}
-
-Recall that we assumed that this function was well-behaved enough to avoid
-negative values. That means that if the optimum is near zero for some
-products, or if our objective funtion is not ``well-behaved'', that our method
-will probably not perform very well.
-
-Also note that, in real life, when consumers have a choice between two
-similar products which require a base investment, that there will be a cost
-associated with using more than one product (example: using AWS and RackSpace
-instead of just AWS or just RackSpace). This model does not take that into
-consideration at all.
