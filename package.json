@@ -1,0 +1,44 @@
+{
+  "name": "dc-tycoon",
+  "version": "0.0.0",
+  "description": "Data Center Tycoon",
+  "main": "./mainframe.js",
+  "bin": {
+    "dc-tycoon": "./bin/dc-tycoon"
+  },
+  "dependencies": {
+    "telnet": "~0.0.1",
+    "colors": "~0.6.0-1",
+    "duplex": "~1.0.0",
+    "exterminate": "~1.2.0",
+    "shell-quote": "~0.1.1",
+    "duplexer": "~0.1.0",
+    "read": "~1.0.4",
+    "through": "~2.3.1",
+    "bashful": "~0.1.0"
+  },
+  "devDependencies": {
+    "tests-of-the-sierra-madre": "0.0.0",
+    "exterminate": "git+ssh://git@github.com:jesusabdullah/exterminate.git"
+  },
+  "scripts": {
+    "test": "tests-of-the-sierra-madre",
+    "start": "exterminate --command './mainframe.js'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/jesusabdullah/data-center-tycoon.git"
+  },
+  "keywords": [
+    "data",
+    "center",
+    "tycoon",
+    "business",
+    "simulation",
+    "game"
+  ],
+  "author": "Joshua Holbrook",
+  "license": "MIT",
+  "gitHead": "65f748beba3bbff541cf55c58016abed6b236dc2",
+  "readmeFilename": "README.md"
+}

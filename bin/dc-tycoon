@@ -1,0 +1,12 @@
+#!/usr/bin/env node
+
+var spawn = require('child_process').spawn,
+    path = require('path');
+
+var game = spawn(path.join(__dirname, '../node_modules/.bin/exterminate'),
+  [ '--command', path.join(__dirname, 'dc-tycoon-shell') ]
+);
+
+process.stdin.pipe(game.stdin);
+game.stdout.pipe(process.stdout);
+game.stderr.pipe(process.stderr);

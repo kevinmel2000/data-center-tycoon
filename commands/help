@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+var fs = require('fs');
+
+require('colors');
+
+var log = console.log;
+
+log('You flip through your user manuals (big gross binders that appear to have');
+log('been typewritten in the early seventies at a government facility--or maybe');
+log('like AT&T or something--and covered with coffee stains) in an attempt');
+log('to figure out how the ' + 'h-e-double-hockeysticks'.red.bold + ' this game is supposed to work.');
+log();
+log('From what you gather, this is kind of like a regular shell, except you');
+log('can\'t actually ' + 'do'.green.bold + ' anything except run commands (figures -_-;). Anyways,');
+log('some of the commands look like they do useful and/or interesting things:');
+log();
+
+log(' >> help\tDig through these user manuals');
+log(' >> look\tTake a look around the data center');
+log(' >> status\tGet a status report on how the data center is doing');
+log(' >> schedule\tAdd (remove/change/etc) actions to the schedule');
+log(' >> logout\tQuit the game');
+
+log();
